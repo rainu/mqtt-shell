@@ -19,10 +19,11 @@ type Config struct {
 	ClientId     string `yaml:"client-id"`
 	CleanSession bool   `yaml:"clean-session"`
 
-	StartCommands  []string `yaml:"commands"`
-	NonInteractive bool     `yaml:"non-interactive"`
-	HistoryFile    string   `yaml:"history-file"`
-	Prompt         string   `yaml:"prompt"`
+	StartCommands  []string         `yaml:"commands"`
+	NonInteractive bool             `yaml:"non-interactive"`
+	HistoryFile    string           `yaml:"history-file"`
+	Prompt         string           `yaml:"prompt"`
+	Macros         map[string]Macro `yaml:"macros"`
 }
 
 func NewConfig() Config {

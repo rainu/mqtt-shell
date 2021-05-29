@@ -79,13 +79,13 @@ func (p *processor) handleCommand(chain Chain) error {
 	}
 
 	switch chain.Commands[0].Name {
-	case "pub":
+	case commandPub:
 		return p.handlePub(chain)
-	case "sub":
+	case commandSub:
 		return p.handleSub(chain)
-	case "unsub":
+	case commandUnsub:
 		return p.handleUnsub(chain)
-	case "list":
+	case commandList:
 		return p.handleList(chain)
 	default:
 		return errors.New("unknown command")
@@ -95,7 +95,7 @@ func (p *processor) handleCommand(chain Chain) error {
 func (p *processor) handlePub(chain Chain) (err error) {
 	defer func() {
 		if err != nil {
-			err = fmt.Errorf("%s\nUsage: pub [-r] [-q 0|1|2] <topic> <payload>", err.Error())
+			err = fmt.Errorf("%s\nUsage: "+commandPub+" [-r] [-q 0|1|2] <topic> <payload>", err.Error())
 		}
 	}()
 
@@ -175,7 +175,7 @@ func (p *processor) handleUnsub(chain Chain) error {
 func (p *processor) handleSub(chain Chain) (err error) {
 	defer func() {
 		if err != nil {
-			err = fmt.Errorf("%s\nUsage: sub [-q 0|1|2] <topic> [...topicN]", err.Error())
+			err = fmt.Errorf("%s\nUsage: "+commandSub+" [-q 0|1|2] <topic> [...topicN]", err.Error())
 		}
 	}()
 

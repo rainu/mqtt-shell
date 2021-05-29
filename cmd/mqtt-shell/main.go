@@ -32,7 +32,7 @@ func main() {
 	signals := make(chan os.Signal, 1)
 
 	if interactive {
-		shell, err := internalIo.NewShell(cfg.Prompt, cfg.HistoryFile, func(s string) []string {
+		shell, err := internalIo.NewShell(cfg.Prompt, cfg.HistoryFile, cfg.Macros, func(s string) []string {
 			return subInformer.GetSubscriptions()
 		})
 		if err != nil {
@@ -102,11 +102,19 @@ func establishMqtt(cfg config.Config) MQTT.Client {
 
 	opts.SetAutoReconnect(true)
 	opts.SetCleanSession(cfg.CleanSession)
+
+	firstConnect := true
 	opts.SetOnConnectHandler(func(_ MQTT.Client) {
-		println("Successfully re-connected to mqtt broker.")
+		if firstConnect {
+			println("Successfully connected to mqtt broker.")
+		} else {
+			println("Successfully re-connected to mqtt broker.")
+		}
 		if mqttReconnectListener != nil {
 			mqttReconnectListener.OnMqttReconnect()
 		}
+
+		firstConnect = false
 	})
 	opts.SetConnectionLostHandler(func(_ MQTT.Client, err error) {
 		println("Connection to broker lost. Reconnecting...")
