@@ -1,67 +1,120 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/rainu/mqtt-shell/internal/config"
 	internalIo "github.com/rainu/mqtt-shell/internal/io"
 	"io"
+	"io/ioutil"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
+var mqttReconnectListener interface {
+	OnMqttReconnect()
+}
+
 func main() {
-	var output io.Writer
-	var mqttReconnectListener interface {
-		OnMqttReconnect()
-	}
-
 	cfg := config.NewConfig()
+	interactive := !cfg.NonInteractive
 
-	opts := MQTT.NewClientOptions()
-	opts.AddBroker(*cfg.Broker)
-	opts.SetClientID(*cfg.ClientId)
-	if cfg.Username != nil {
-		opts.SetUsername(*cfg.Username)
+	mqttClient := establishMqtt(cfg)
+
+	var output io.Writer
+	var inputChan chan string
+	var subInformer interface {
+		GetSubscriptions() []string
 	}
-	if cfg.Password != nil {
-		opts.SetPassword(*cfg.Password)
-	}
-	opts.SetAutoReconnect(true)
-	opts.SetCleanSession(*cfg.CleanSession)
-	opts.SetOnConnectHandler(func(_ MQTT.Client) {
-		if output != nil {
-			output.Write([]byte("Successfully re-connected to mqtt broker.\n"))
+	signals := make(chan os.Signal, 1)
+
+	if interactive {
+		shell, err := internalIo.NewShell(cfg.Prompt, cfg.HistoryFile, func(s string) []string {
+			return subInformer.GetSubscriptions()
+		})
+		if err != nil {
+			log.Fatal(err)
 		}
+		output = shell
+		inputChan = shell.Start()
+	} else {
+		//non interactive mean that there is no shell open
+		inputChan = make(chan string)
+		output = os.Stdout
+
+		//reacting to signals (interrupt)
+		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	}
+
+	//execute the start commands
+	go func() {
+		for _, command := range cfg.StartCommands {
+			inputChan <- command
+		}
+
+		if cfg.NonInteractive {
+			close(inputChan)
+		}
+	}()
+
+	processor := internalIo.NewProcessor(output, mqttClient)
+	subInformer = processor
+	mqttReconnectListener = processor
+
+	//process loop
+	processor.Process(inputChan)
+
+	if !interactive && processor.HasSubscriptions() {
+		//wait for interrupt
+		<-signals
+	}
+}
+
+func establishMqtt(cfg config.Config) MQTT.Client {
+	opts := MQTT.NewClientOptions()
+	opts.AddBroker(cfg.Broker)
+	opts.SetClientID(cfg.ClientId)
+	if cfg.Username != "" {
+		opts.SetUsername(cfg.Username)
+	}
+	if cfg.Password != "" {
+		opts.SetPassword(cfg.Password)
+	}
+
+	if cfg.CaFile != "" {
+		certPool := x509.NewCertPool()
+		certFile, err := ioutil.ReadFile(cfg.CaFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		ok := certPool.AppendCertsFromPEM(certFile)
+		if !ok {
+			log.Fatal("Failed to parse ca certificate!")
+		}
+
+		opts.SetTLSConfig(&tls.Config{
+			RootCAs: certPool,
+		})
+	}
+
+	opts.SetAutoReconnect(true)
+	opts.SetCleanSession(cfg.CleanSession)
+	opts.SetOnConnectHandler(func(_ MQTT.Client) {
+		println("Successfully re-connected to mqtt broker.")
 		if mqttReconnectListener != nil {
 			mqttReconnectListener.OnMqttReconnect()
 		}
 	})
 	opts.SetConnectionLostHandler(func(_ MQTT.Client, err error) {
-		if output != nil {
-			output.Write([]byte("Connection to broker lost. Reconnecting...\n"))
-		}
+		println("Connection to broker lost. Reconnecting...")
 	})
 
 	client := MQTT.NewClient(opts)
 	if t := client.Connect(); !t.Wait() || t.Error() != nil {
 		log.Fatal(t.Error())
 	}
-
-	var subInformer interface {
-		GetSubscriptions() []string
-	}
-	shell, err := internalIo.NewShell(func(s string) []string {
-		return subInformer.GetSubscriptions()
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	output = shell
-	inputChan := shell.Start()
-
-	processor := internalIo.NewProcessor(shell, client)
-	subInformer = processor
-	mqttReconnectListener = processor
-
-	//process loop
-	processor.Process(inputChan)
+	return client
 }

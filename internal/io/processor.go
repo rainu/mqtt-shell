@@ -63,6 +63,10 @@ func (p *processor) GetSubscriptions() []string {
 	return topics
 }
 
+func (p *processor) HasSubscriptions() bool {
+	return len(p.subscribedTopics) > 0
+}
+
 func (p *processor) OnMqttReconnect() {
 	for topic, subscription := range p.subscribedTopics {
 		p.client.Subscribe(topic, subscription.qos, subscription.callback)

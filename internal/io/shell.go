@@ -12,7 +12,7 @@ type shell struct {
 	rlInstance *readline.Instance
 }
 
-func NewShell(unsubCompletionClb readline.DynamicCompleteFunc) (instance *shell, err error) {
+func NewShell(prompt, historyFile string, unsubCompletionClb readline.DynamicCompleteFunc) (instance *shell, err error) {
 	instance = &shell{}
 
 	qosItem := readline.PcItem("-q",
@@ -22,8 +22,8 @@ func NewShell(unsubCompletionClb readline.DynamicCompleteFunc) (instance *shell,
 	)
 
 	instance.rlInstance, err = readline.NewEx(&readline.Config{
-		Prompt:      "\033[31m»\033[0m ",
-		HistoryFile: "/tmp/readline.tmp",
+		Prompt:      prompt, //"\033[31m»\033[0m ",
+		HistoryFile: historyFile,
 		AutoComplete: readline.NewPrefixCompleter(
 			readline.PcItem("exit"),
 			readline.PcItem("list"),
