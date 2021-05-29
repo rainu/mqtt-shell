@@ -96,6 +96,11 @@ func (s *shell) Start() chan string {
 				}
 				return -1
 			}, line)
+			line = strings.TrimSpace(line)
+
+			if line == commandExit {
+				break
+			}
 
 			lines := []string{line}
 			if strings.HasPrefix(line, commandMacro) {

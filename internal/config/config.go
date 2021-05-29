@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"log"
 	"os"
@@ -51,8 +52,11 @@ func NewConfig() Config {
 	flag.StringVar(&cfg.HistoryFile, "hf", path.Join(home, ".mqtt-shell", ".history"), "The history file path")
 	flag.StringVar(&cfg.Prompt, "sp", `\033[36m»\033[0m `, "The prompt of the shell")
 
-	var startCommands varArgs
+	var startCommands, macroFiles varArgs
+	macroFiles.Set(path.Join(home, ".mqtt-shell", "macros.yml"))
+
 	flag.Var(&startCommands, "cmd", "The command(s) which should be executed at the beginning")
+	flag.Var(&macroFiles, "m", "The macro file(s) which should be loaded")
 	flag.Parse()
 
 	cfg.StartCommands = startCommands
@@ -73,6 +77,7 @@ func NewConfig() Config {
 		if err != nil {
 			log.Fatal("Can not open environment file: ", err)
 		}
+		defer envFile.Close()
 
 		if err := yaml.NewDecoder(envFile).Decode(&cfg); err != nil {
 			log.Fatal("Unable to parse environment file: ", err)
@@ -86,6 +91,29 @@ func NewConfig() Config {
 	cfg.Prompt, err = strconv.Unquote(`"` + cfg.Prompt + `"`)
 	if err != nil {
 		log.Fatal("Unable to parse prompt: ", err)
+	}
+
+	for _, filePath := range macroFiles {
+		file, err := os.Open(filePath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				//skip this file
+				continue
+			}
+
+			log.Fatal("Can not open macro file: ", err)
+		}
+		defer file.Close()
+
+		macros := map[string]Macro{}
+		if err := yaml.NewDecoder(file).Decode(&macros); err != nil {
+			log.Fatal(fmt.Sprintf("Unable to parse macro file '%s': ", filePath), err)
+		}
+
+		//merge macros
+		for macroName, macroSpec := range macros {
+			cfg.Macros[macroName] = macroSpec
+		}
 	}
 
 	return cfg
