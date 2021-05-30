@@ -20,6 +20,8 @@ var mqttReconnectListener interface {
 
 func main() {
 	cfg := config.NewConfig()
+	applyColorBlacklist(cfg)
+
 	interactive := !cfg.NonInteractive
 
 	mqttClient := establishMqtt(cfg)
@@ -70,6 +72,12 @@ func main() {
 	if !interactive && processor.HasSubscriptions() {
 		//wait for interrupt
 		<-signals
+	}
+}
+
+func applyColorBlacklist(cfg config.Config) {
+	for _, colorCode := range cfg.ColorBlacklist {
+		internalIo.RemoveDecoratorFromPool(colorCode)
 	}
 }
 

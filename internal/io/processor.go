@@ -79,6 +79,8 @@ func (p *processor) handleCommand(chain Chain) error {
 	}
 
 	switch chain.Commands[0].Name {
+	case commandListColors:
+		return p.handleColors(chain)
 	case commandPub:
 		return p.handlePub(chain)
 	case commandSub:
@@ -90,6 +92,14 @@ func (p *processor) handleCommand(chain Chain) error {
 	default:
 		return errors.New("unknown command")
 	}
+}
+
+func (p *processor) handleColors(chain Chain) error {
+	for _, dec := range decoratorPool {
+		p.out.Write([]byte(fmt.Sprintf("%s\n", decorate(dec.String(), dec...))))
+	}
+
+	return nil
 }
 
 func (p *processor) handlePub(chain Chain) (err error) {
@@ -226,8 +236,12 @@ func (p *processor) handleSub(chain Chain) (err error) {
 
 func (p *processor) genSubHandler(topic string, chain Chain) (func(mqtt.Client, mqtt.Message), error) {
 	if len(chain.Commands) == 1 {
+		//the decorator will be saved because of inline func
+		//so each message for the current sub have the same decorator
+		decorators := getNextDecorators()
+
 		return func(_ mqtt.Client, message mqtt.Message) {
-			p.out.Write([]byte(fmt.Sprintf("%s | %s\n", message.Topic(), message.Payload())))
+			p.out.Write([]byte(decorate(message.Topic()+" |", decorators...) + " " + string(message.Payload()) + "\n"))
 		}, nil
 	}
 
@@ -274,6 +288,10 @@ func (p *processor) longTermSub(topic string, chain Chain) (func(mqtt.Client, mq
 }
 
 func (p *processor) shortTermSub(chain Chain) func(mqtt.Client, mqtt.Message) {
+	//the decorator will be saved because of inline func
+	//so each message for the current sub have the same decorator
+	decorators := getNextDecorators()
+
 	return func(client mqtt.Client, message mqtt.Message) {
 		wg := sync.WaitGroup{}
 		wg.Add(1)
@@ -284,7 +302,7 @@ func (p *processor) shortTermSub(chain Chain) func(mqtt.Client, mqtt.Message) {
 			writer := make([]io.Writer, 0, 1)
 			if !chain.IsAppending() {
 				writer = append(writer, &prefixWriter{
-					Prefix:   message.Topic() + " | ",
+					Prefix:   decorate(message.Topic()+" |", decorators...) + " ",
 					Delegate: p.out,
 				})
 			}
@@ -293,7 +311,7 @@ func (p *processor) shortTermSub(chain Chain) func(mqtt.Client, mqtt.Message) {
 			defer clb()
 
 			if err != nil {
-				p.out.Write([]byte(fmt.Sprintf("%s | %s\n", message.Topic(), err.Error())))
+				p.out.Write([]byte(decorate(message.Topic()+" |", decorators...) + " " + err.Error() + "\n"))
 			}
 			cmd.Run()
 		}()

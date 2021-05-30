@@ -8,6 +8,7 @@ It is also possible to pass through the incoming messages to external applicatio
 ![](./doc/example.gif)
 
 Features:
+* Colored output
 * Subscribe (multiple) mqtt topics
 * Publish messages to mqtt topic
 * Pipe the incoming messages to external applications
@@ -37,6 +38,8 @@ Usage of ./mqtt-shell:
     	The ClientID (default "mqtt-shell")
   -ca string
     	MQTT ca file path (if tls is used)
+  -cb value
+    	This color(s) will not be used
   -cmd value
     	The command(s) which should be executed at the beginning
   -cs
@@ -47,6 +50,8 @@ Usage of ./mqtt-shell:
     	The environment directory (default "~/.mqtt-shell")
   -hf string
     	The history file path (default "~/.mqtt-shell/.history")
+  -m value
+    	The macro file(s) which should be loaded (default ~/.mqtt-shell/macros.yml)
   -ni
     	Should this shell be non interactive. Only useful in combination with 'cmd' option
   -p string
@@ -68,6 +73,8 @@ This files must be stored in the environment directory (by default ~/.mqtt-shell
 
 For example:
 ```yaml
+# example.yml
+
 broker: tls://127.0.0.1:8883
 ca: /tmp/my.ca
 subscribe-qos: 1
@@ -88,4 +95,30 @@ macros:
       - message
     commands:
       - pub test $1
+color-blacklist:
+  - "38;5;237"
+```
+
+```bash
+$ ./mqtt-shell -e example
+```
+
+# Color output
+
+This shell is able to write colored output. Each time a new subscription is made, the messages for that subscription will have
+a colored prefix. Each subscription (not topic!) should have an own color schema. Internally the shell will have a pool with
+color codes. Each time a new subscription was made, the next color will get from that pool. After the pool is exhausted, 
+the color choosing will start again. The color pool can be shown with the `color` command in the shell.
+
+If you want to disable some colors, you have to put them in your yaml config file(s). Or use the option `-cb` for the current
+session.
+
+## Why chained applications will not show any color?
+
+Because the mqtt-shell itself will start the chained application, the application can not detect if it operates on a tty. 
+So normally the applications will think that their stdin is no tty. Most of the application have an option to force print
+the color codes. For example grep:
+
+```bash
+sub test/topic | grep --color=always Message
 ```

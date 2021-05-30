@@ -33,6 +33,7 @@ func NewShell(prompt, historyFile string,
 		Prompt:      prompt,
 		HistoryFile: historyFile,
 		AutoComplete: readline.NewPrefixCompleter(
+			readline.PcItem(commandListColors),
 			readline.PcItem(commandExit),
 			readline.PcItem(commandList),
 			macroItem,

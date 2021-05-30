@@ -25,6 +25,7 @@ type Config struct {
 	HistoryFile    string           `yaml:"history-file"`
 	Prompt         string           `yaml:"prompt"`
 	Macros         map[string]Macro `yaml:"macros"`
+	ColorBlacklist []string         `yaml:"color-blacklist"`
 }
 
 func NewConfig() Config {
@@ -52,14 +53,16 @@ func NewConfig() Config {
 	flag.StringVar(&cfg.HistoryFile, "hf", path.Join(home, ".mqtt-shell", ".history"), "The history file path")
 	flag.StringVar(&cfg.Prompt, "sp", `\033[36m»\033[0m `, "The prompt of the shell")
 
-	var startCommands, macroFiles varArgs
+	var startCommands, macroFiles, colorBlacklist varArgs
 	macroFiles.Set(path.Join(home, ".mqtt-shell", "macros.yml"))
 
 	flag.Var(&startCommands, "cmd", "The command(s) which should be executed at the beginning")
 	flag.Var(&macroFiles, "m", "The macro file(s) which should be loaded")
+	flag.Var(&colorBlacklist, "cb", "This color(s) will not be used")
 	flag.Parse()
 
 	cfg.StartCommands = startCommands
+	cfg.ColorBlacklist = colorBlacklist
 
 	if env != "" {
 		var suffix string
