@@ -66,6 +66,11 @@ Usage of ./mqtt-shell:
     	The username
 ```
 
+## Setting files
+
+All options can be written in separate environment files (one per environment) or for global settings in the `.global.yml` file.
+These files must be stores inside the shel-config directory (`~/.mqtt-shell`).
+
 ## Environment configurations
 
 You can create yaml files where you can configure predefined configuration. This can be helpful for different mqtt environments.
@@ -101,6 +106,32 @@ color-blacklist:
 
 ```bash
 $ ./mqtt-shell -e example
+```
+
+# Macros
+
+Macros are a set of commands which should be executed if the macro is executed. Macros can have their own arguments. 
+Macros can be defined in the environment file (`~/.mqtt-shell/my-env.yml`), the global settings (`~/.mqtt-shell/.global.yml`) 
+or the global macro file (`~/.mqtt-shell/.macros.yml`)
+
+```yaml
+# ~/.mqtt-shell/.macros.yml
+
+my-macro:
+  description: Awesome description of my macro
+  arguments:
+    - message
+  varargs: true
+  commands:
+    - pub test $1
+```
+
+Then you can use it in the mqtt-shell:
+```bash
+> sub test
+> macro my-macro "Message#1" "Message#2"
+test | Message#1
+test | Message#2
 ```
 
 # Color output

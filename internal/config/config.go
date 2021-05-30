@@ -54,7 +54,7 @@ func NewConfig() Config {
 	flag.StringVar(&cfg.Prompt, "sp", `\033[36m»\033[0m `, "The prompt of the shell")
 
 	var startCommands, macroFiles, colorBlacklist varArgs
-	macroFiles.Set(path.Join(home, ".mqtt-shell", "macros.yml"))
+	macroFiles.Set(path.Join(home, ".mqtt-shell", ".macros.yml"))
 
 	flag.Var(&startCommands, "cmd", "The command(s) which should be executed at the beginning")
 	flag.Var(&macroFiles, "m", "The macro file(s) which should be loaded")
@@ -64,32 +64,50 @@ func NewConfig() Config {
 	cfg.StartCommands = startCommands
 	cfg.ColorBlacklist = colorBlacklist
 
+	if _, err := os.Stat(path.Join(envDir, ".global.yml")); err == nil {
+		handleFile(envDir, ".global", &cfg)
+	}
+	if _, err := os.Stat(path.Join(envDir, ".global.yaml")); err == nil {
+		handleFile(envDir, ".global", &cfg)
+	}
+
 	if env != "" {
-		var suffix string
-		if _, err := os.Stat(path.Join(envDir, env+".yaml")); os.IsNotExist(err) {
-			if _, err := os.Stat(path.Join(envDir, env+".yml")); os.IsNotExist(err) {
-				log.Fatal("No environment file found")
-			} else {
-				suffix = ".yml"
-			}
-		} else {
-			suffix = ".yaml"
-		}
-
-		envFile, err := os.Open(path.Join(envDir, env+suffix))
-		if err != nil {
-			log.Fatal("Can not open environment file: ", err)
-		}
-		defer envFile.Close()
-
-		if err := yaml.NewDecoder(envFile).Decode(&cfg); err != nil {
-			log.Fatal("Unable to parse environment file: ", err)
-		}
+		handleFile(envDir, env, &cfg)
 	}
 
 	if cfg.Broker == "" {
 		log.Fatal("Broker is missing!")
 	}
+	loadMacroFiles(&cfg, macroFiles)
+
+	return cfg
+}
+
+func handleFile(envDir, env string, cfg *Config) {
+	var suffix string
+	if _, err := os.Stat(path.Join(envDir, env+".yaml")); os.IsNotExist(err) {
+		if _, err := os.Stat(path.Join(envDir, env+".yml")); os.IsNotExist(err) {
+			log.Fatal("No environment file found")
+		} else {
+			suffix = ".yml"
+		}
+	} else {
+		suffix = ".yaml"
+	}
+
+	envFile, err := os.Open(path.Join(envDir, env+suffix))
+	if err != nil {
+		log.Fatal("Can not open environment file: ", err)
+	}
+	defer envFile.Close()
+
+	if err := yaml.NewDecoder(envFile).Decode(&cfg); err != nil {
+		log.Fatal("Unable to parse environment file: ", err)
+	}
+}
+
+func loadMacroFiles(cfg *Config, macroFiles varArgs) {
+	var err error
 
 	cfg.Prompt, err = strconv.Unquote(`"` + cfg.Prompt + `"`)
 	if err != nil {
@@ -118,6 +136,4 @@ func NewConfig() Config {
 			cfg.Macros[macroName] = macroSpec
 		}
 	}
-
-	return cfg
 }
