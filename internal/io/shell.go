@@ -86,7 +86,10 @@ func (s *shell) Start() chan string {
 
 		for {
 			line, err := s.rlInstance.Readline()
-			if err != nil && err != readline.ErrInterrupt {
+			if err != nil {
+				if err == readline.ErrInterrupt {
+					continue
+				}
 				return
 			}
 
