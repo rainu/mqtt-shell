@@ -108,6 +108,44 @@ color-blacklist:
 $ ./mqtt-shell -e example
 ```
 
+# command chaining
+
+One powerful feature of this shell is to chain incoming messages to external applications. It works like the other unix shells:
+
+This will pass through all incoming messages in topic **test/topic** to `grep`
+```bash
+sub test/topic | grep "Message"
+```
+
+## stderr forwarding
+
+If you want to push stdout **and** stderr to the stdin of the next application:
+```bash
+sub test/topic | myExternalApplication |& grep "Message"
+```
+
+## long term applications
+
+Normally the external applications will be started on **each incoming Message**. If you want to stream all incoming messages
+to a single started application:
+```bash
+sub test/topic | grep "Message" &
+```
+
+## file redirection
+
+If you want to write all incoming messages into files:
+```bash
+sub test/topic >> /tmp/test.msg
+```
+
+### only last incoming message
+
+If you want to write only the latest incoming message to file:
+```bash
+sub test/topic > /tmp/last.msg
+```
+
 # Macros
 
 Macros are a set of commands which should be executed if the macro is executed. Macros can have their own arguments. 
