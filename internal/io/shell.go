@@ -2,8 +2,8 @@ package io
 
 import (
 	"fmt"
-	"github.com/chzyer/readline"
 	"github.com/rainu/mqtt-shell/internal/config"
+	"github.com/rainu/readline"
 	"os"
 	"strings"
 	"unicode"
