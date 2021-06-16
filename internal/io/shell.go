@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/rainu/mqtt-shell/internal/config"
 	"github.com/rainu/readline"
+	"io"
 	"os"
 	"strings"
 	"unicode"
@@ -12,6 +13,8 @@ import (
 type shell struct {
 	rlInstance *readline.Instance
 	macros     map[string]config.Macro
+
+	targetOut io.Writer
 }
 
 func NewShell(prompt, historyFile string,
@@ -19,7 +22,8 @@ func NewShell(prompt, historyFile string,
 	unsubCompletionClb readline.DynamicCompleteFunc) (instance *shell, err error) {
 
 	instance = &shell{
-		macros: macros,
+		macros:    macros,
+		targetOut: os.Stdout,
 	}
 
 	qosItem := readline.PcItem("-q",
@@ -188,5 +192,12 @@ func (s *shell) Write(b []byte) (n int, err error) {
 		}
 	}()
 
-	return fmt.Fprintf(os.Stdout, "\r\033[2K%s", string(b))
+	n, err = fmt.Fprintf(s.targetOut, "\r\033[2K%s", string(b))
+	if err == nil {
+		//in happy case we have to make sure that the correct amount of read bytes
+		//are returned -> otherwise this will cause many io trouble
+		n = len(b)
+	}
+
+	return
 }
