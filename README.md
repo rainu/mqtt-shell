@@ -167,7 +167,7 @@ my-macro:
 Then you can use it in the mqtt-shell:
 ```bash
 > sub test
-> macro my-macro "Message#1" "Message#2"
+> my-macro "Message#1" "Message#2"
 test | Message#1
 test | Message#2
 ```

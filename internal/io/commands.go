@@ -2,10 +2,10 @@ package io
 
 const (
 	commandExit       = "exit"
-	commandList       = "list"
+	commandList       = ".ls"
 	commandPub        = "pub"
 	commandSub        = "sub"
 	commandUnsub      = "unsub"
-	commandMacro      = "macro"
-	commandListColors = "colors"
+	commandMacro      = ".macro"
+	commandListColors = ".lsc"
 )
