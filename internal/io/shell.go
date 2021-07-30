@@ -188,8 +188,25 @@ func (s *shell) resolveMacro(line string) []string {
 		return nil
 	}
 
+	splitLine := strings.SplitN(line, "|", 2)
+	pipe := ""
+	if len(splitLine) >= 2 {
+		pipe = splitLine[1]
+	}
+
 	if len(macroSpec.Arguments) == 0 {
-		return macroSpec.Commands
+		if pipe == "" {
+			return macroSpec.Commands
+		}
+
+		lines := make([]string, len(macroSpec.Commands))
+		for i := 0; i < len(lines); i++ {
+			lines[i] = macroSpec.Commands[i]
+			if strings.HasPrefix(macroSpec.Commands[i], commandSub+" ") {
+				lines[i] += " | " + pipe
+			}
+		}
+		return lines
 	}
 
 	staticArgs := chain.Commands[0].Arguments[:len(macroSpec.Arguments)-1]
@@ -206,6 +223,10 @@ func (s *shell) resolveMacro(line string) []string {
 			}
 			line = strings.Replace(line, fmt.Sprintf("$%d", i+1), arg, -1)
 			line = strings.Replace(line, "__DOLLAR_ESCAPE__", "$", -1)
+
+			if pipe != "" && strings.HasPrefix(line, commandSub+" ") {
+				line += " | " + pipe
+			}
 
 			lines = append(lines, line)
 		}
