@@ -121,6 +121,9 @@ func (s *shell) Start() chan string {
 			}, line)
 			line = strings.TrimSpace(line)
 
+			if line == "" {
+				continue
+			}
 			if line == commandExit {
 				break
 			}
