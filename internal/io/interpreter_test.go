@@ -54,6 +54,11 @@ func TestInterpretLine(t *testing.T) {
 		}, ""},
 		{`unfinished "quote`, Chain{RawLine: []string{"unfinished"}}, "Unterminated double-quoted string"},
 		{`unfinished 'quote`, Chain{RawLine: []string{"unfinished"}}, "Unterminated single-quoted string"},
+		{"multiline arg1 <<EOF\nthis is\na multiline\nargumentEOF", Chain{
+			[]Command{{"multiline", []string{"arg1", "this is\na multiline\nargument"}}},
+			nil,
+			[]string{"multiline", "arg1", "this is\na multiline\nargument"},
+		}, ""},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("TestInterpretLine_%d", i), func(t *testing.T) {

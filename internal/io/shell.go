@@ -6,9 +6,12 @@ import (
 	"github.com/rainu/readline"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"unicode"
 )
+
+var multilineRegex = regexp.MustCompile(`<<([a-zA-Z0-9]+)$`)
 
 type shell struct {
 	rlInstance *readline.Instance
@@ -121,11 +124,16 @@ func (s *shell) Start() chan string {
 			}, line)
 			line = strings.TrimSpace(line)
 
-			if line == "" {
-				continue
-			}
 			if line == commandExit {
 				break
+			}
+
+			if multilineRegex.MatchString(line) {
+				line = s.readMultilines(line)
+			}
+
+			if line == "" {
+				continue
 			}
 
 			if line == commandMacro {
@@ -167,6 +175,33 @@ func isMacro(line string) bool {
 	default:
 		return true
 	}
+}
+
+func (s *shell) readMultilines(line string) string {
+	sb := strings.Builder{}
+	sb.WriteString(line)
+
+	eofWord := multilineRegex.FindStringSubmatch(line)[1]
+
+	//do not safe the lines hin history
+	s.rlInstance.HistoryDisable()
+	defer s.rlInstance.HistoryEnable()
+
+	for {
+		newLine, err := s.rlInstance.Readline()
+		if err != nil {
+			return "" //if user cancel the read
+		}
+
+		sb.WriteString("\n")
+		sb.WriteString(newLine)
+
+		if strings.HasSuffix(newLine, eofWord) {
+			break
+		}
+	}
+
+	return sb.String()
 }
 
 func (s *shell) resolveMacro(line string) []string {

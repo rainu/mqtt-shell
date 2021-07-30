@@ -108,6 +108,23 @@ color-blacklist:
 $ ./mqtt-shell -e example
 ```
 
+# multiline publishing
+
+If you want to publish a multiline message to topic:
+```bash
+pub test/topic <<EOF
+This is
+a multiline
+message
+EOF
+```
+
+This is also useful if you don't want to handle argument escaping:
+```bash
+pub test/topic <<EOF
+{"key": "value"}EOF
+```
+
 # command chaining
 
 One powerful feature of this shell is to chain incoming messages to external applications. It works like the other unix shells:

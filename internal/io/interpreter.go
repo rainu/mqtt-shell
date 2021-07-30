@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -39,9 +40,31 @@ type Chain struct {
 var interpretLine = func(line string) (Chain, error) {
 	var err error
 	chain := Chain{}
+
+	multilineArg := ""
+	if strings.Contains(line, "\n") {
+		//newlines should only exists if there is a multiline argument available!
+		//in that case this multiline argument is always the last argument
+
+		//the multiline argument must not interpret by shellquote! the argument
+		//should not be manipulated (quote replacement etc.)
+
+		firstLine := strings.Split(line, "\n")[0]
+		eofWord := multilineRegex.FindStringSubmatch(firstLine)[1]
+		multilineArgRegex := regexp.MustCompile("(?s)<<" + eofWord + "(.*)" + eofWord + "$")
+		result := multilineArgRegex.FindStringSubmatch(line)
+		multilineArg = strings.Trim(result[1], "\n")
+
+		line = firstLine
+	}
+
 	chain.RawLine, err = shellquote.Split(line)
 	if err != nil {
 		return chain, err
+	}
+
+	if multilineArg != "" {
+		chain.RawLine[len(chain.RawLine)-1] = multilineArg
 	}
 
 	cmdParts := [][]string{{}}
