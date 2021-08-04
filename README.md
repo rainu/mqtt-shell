@@ -25,6 +25,11 @@ go build -a -installsuffix cgo ./cmd/mqtt-shell/
 
 Or you can download the release binaries: [here](https://github.com/rainu/mqtt-shell/releases/latest)
 
+Or for Arch-Linux you cann install the AUR-Package [mqtt-shell](https://aur.archlinux.org/packages/mqtt-shell/)
+```bash
+yay -S mqtt-shell
+```
+
 # Usage 
 
 To see all command options, simple type
