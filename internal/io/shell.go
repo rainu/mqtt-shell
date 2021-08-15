@@ -14,8 +14,8 @@ import (
 var multilineRegex = regexp.MustCompile(`<<([a-zA-Z0-9]+)$`)
 
 type shell struct {
-	rlInstance *readline.Instance
-	macros     map[string]config.Macro
+	rlInstance   *readline.Instance
+	macroManager *macroManager
 
 	targetOut io.Writer
 }
@@ -24,13 +24,16 @@ func NewShell(prompt, historyFile string,
 	macros map[string]config.Macro,
 	unsubCompletionClb readline.DynamicCompleteFunc) (instance *shell, err error) {
 
-	if err := validateMacros(macros); err != nil {
-		return nil, err
-	}
-
 	instance = &shell{
-		macros:    macros,
+		macroManager: &macroManager{
+			macroSpecs: macros,
+		},
 		targetOut: os.Stdout,
+	}
+	instance.macroManager.output = instance
+
+	if err := instance.macroManager.ValidateAndInitMacros(); err != nil {
+		return nil, err
 	}
 
 	qosItem := readline.PcItem("-q",
@@ -70,17 +73,6 @@ func NewShell(prompt, historyFile string,
 		return nil, err
 	}
 	return instance, nil
-}
-
-func validateMacros(macros map[string]config.Macro) error {
-	for macroName := range macros {
-		if !isMacro(macroName) || !isMacro(macroName+" ") {
-			//the given macroName is already in use of internal commands
-			return fmt.Errorf(`invalid macro name '%s': reserved`, macroName)
-		}
-	}
-
-	return nil
 }
 
 func generateMacroCompleter(macros map[string]config.Macro) []readline.PrefixCompleterInterface {
@@ -137,16 +129,14 @@ func (s *shell) Start() chan string {
 			}
 
 			if line == commandMacro {
-				//if only ".macro" is typed, list all available macros
-				for macroName, macroSpec := range s.macros {
-					s.Write([]byte(fmt.Sprintf("%s - %s\n", macroName, macroSpec.Description)))
-				}
+				//if only ".macro" is typed, list all available macroSpecs
+				s.macroManager.PrintMacros()
 				continue
 			}
 
 			lines := []string{line}
 			if isMacro(line) {
-				lines = s.resolveMacro(line)
+				lines = s.macroManager.ResolveMacro(line)
 			}
 
 			for _, line := range lines {
@@ -156,25 +146,6 @@ func (s *shell) Start() chan string {
 	}()
 
 	return lineChannel
-}
-
-func isMacro(line string) bool {
-	switch {
-	case line == commandExit:
-		fallthrough
-	case line == commandList:
-		fallthrough
-	case line == commandListColors:
-		fallthrough
-	case strings.HasPrefix(line, commandPub+" "):
-		fallthrough
-	case strings.HasPrefix(line, commandSub+" "):
-		fallthrough
-	case strings.HasPrefix(line, commandUnsub+" "):
-		return false
-	default:
-		return true
-	}
 }
 
 func (s *shell) readMultilines(line string) string {
@@ -202,72 +173,6 @@ func (s *shell) readMultilines(line string) string {
 	}
 
 	return sb.String()
-}
-
-func (s *shell) resolveMacro(line string) []string {
-	chain, err := interpretLine(line)
-	if err != nil {
-		return []string{line}
-	}
-
-	macroName := chain.Commands[0].Name
-	if _, ok := s.macros[macroName]; !ok {
-		s.Write([]byte("unknown macro\n"))
-		return nil
-	}
-
-	macroSpec := s.macros[macroName]
-	if len(chain.Commands[0].Arguments) < len(macroSpec.Arguments) || (!macroSpec.Varargs && len(chain.Commands[0].Arguments) != len(macroSpec.Arguments)) {
-		s.Write([]byte("invalid macro arguments\n"))
-		s.Write([]byte("usage: " + macroName + " " + strings.Join(macroSpec.Arguments, " ") + "\n"))
-		return nil
-	}
-
-	splitLine := strings.SplitN(line, "|", 2)
-	pipe := ""
-	if len(splitLine) >= 2 {
-		pipe = splitLine[1]
-	}
-
-	if len(macroSpec.Arguments) == 0 {
-		if pipe == "" {
-			return macroSpec.Commands
-		}
-
-		lines := make([]string, len(macroSpec.Commands))
-		for i := 0; i < len(lines); i++ {
-			lines[i] = macroSpec.Commands[i]
-			if strings.HasPrefix(macroSpec.Commands[i], commandSub+" ") {
-				lines[i] += " | " + pipe
-			}
-		}
-		return lines
-	}
-
-	staticArgs := chain.Commands[0].Arguments[:len(macroSpec.Arguments)-1]
-	varArgs := chain.Commands[0].Arguments[len(macroSpec.Arguments)-1:]
-	lines := make([]string, 0, len(macroSpec.Commands)*len(varArgs))
-
-	for _, arg := range varArgs {
-		for _, macroCommand := range macroSpec.Commands {
-			line := strings.Replace(macroCommand, "\\$", "__DOLLAR_ESCAPE__", -1)
-
-			i := 0
-			for ; i < len(staticArgs); i++ {
-				line = strings.Replace(line, fmt.Sprintf("$%d", i+1), staticArgs[i], -1)
-			}
-			line = strings.Replace(line, fmt.Sprintf("$%d", i+1), arg, -1)
-			line = strings.Replace(line, "__DOLLAR_ESCAPE__", "$", -1)
-
-			if pipe != "" && strings.HasPrefix(line, commandSub+" ") {
-				line += " | " + pipe
-			}
-
-			lines = append(lines, line)
-		}
-	}
-
-	return lines
 }
 
 func (s *shell) Close() error {

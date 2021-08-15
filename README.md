@@ -170,10 +170,11 @@ sub test/topic > /tmp/last.msg
 
 # Macros
 
-Macros are a set of commands which should be executed if the macro is executed. Macros can have their own arguments. 
-Macros can be defined in the environment file (`~/.mqtt-shell/my-env.yml`), the global settings (`~/.mqtt-shell/.global.yml`) 
-or the global macro file (`~/.mqtt-shell/.macros.yml`)
+Macros can be a list of commands which should be executed. Or it can be a more complex but more powerful script. 
+Macros can have their own arguments. They can be defined in the environment file (`~/.mqtt-shell/my-env.yml`), 
+the global settings (`~/.mqtt-shell/.global.yml`) or the global macro file (`~/.mqtt-shell/.macros.yml`)
 
+## Macros - list of commands
 ```yaml
 # ~/.mqtt-shell/.macros.yml
 
@@ -192,6 +193,40 @@ Then you can use it in the mqtt-shell:
 > my-macro "Message#1" "Message#2"
 test | Message#1
 test | Message#2
+```
+
+## Macros - a complex script
+
+The [golang text templating](https://pkg.go.dev/text/template) is used for the scripts. The macro arguments can be read
+by **Arg** following by the **number of the argument**. So for the first argument: **Arg1** and for the second **Arg2** and
+so on. 
+
+Furthermore there are two custom functions available:
+
+| name | argument | description | example |
+|---|---|---|---|
+| exec | &lt;cmdLine&gt; | Run the given command and return the result. You can also use pipes! | exec "date &#124; cut -d\  -f1" |
+| log | &lt;format string&gt; [&lt;argument&gt;, ...] | Write the given content to the shell stdout. | log "Argument#1: %s" .Arg1 |
+
+```yaml
+# ~/.mqtt-shell/.macros.yml
+
+my-macro:
+  description: Awesome description of my macro
+  arguments:
+    - message
+  varargs: true
+  script: |-
+    {{ log "Publish to topic" }}
+    pub test {{ .Arg1 }} {{ exec "date" }}
+```
+
+Then you can use it in the mqtt-shell:
+```bash
+> sub test
+> my-macro "Message#1" "Message#2"
+test | Message#1 So 15. Aug 16:15:00 CEST 2021
+test | Message#2 So 15. Aug 16:15:00 CEST 2021
 ```
 
 # Color output

@@ -5,4 +5,5 @@ type Macro struct {
 	Arguments   []string `yaml:"arguments,flow"`
 	Varargs     bool     `yaml:"varargs"`
 	Commands    []string `yaml:"commands,flow"`
+	Script      string   `yaml:"script"`
 }
