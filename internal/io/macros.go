@@ -10,29 +10,29 @@ import (
 	"text/template"
 )
 
-type macroManager struct {
-	macroSpecs     map[string]config.Macro
+type MacroManager struct {
+	MacroSpecs     map[string]config.Macro
 	macroTemplates map[string]*template.Template
 	macroFunctions map[string]interface{}
-	output         io.Writer
+	Output         io.Writer
 }
 
-func (m *macroManager) ResolveMacro(line string) []string {
+func (m *MacroManager) ResolveMacro(line string) []string {
 	chain, err := interpretLine(line)
 	if err != nil {
 		return []string{line}
 	}
 
 	macroName := chain.Commands[0].Name
-	if _, ok := m.macroSpecs[macroName]; !ok {
-		m.output.Write([]byte("unknown macro\n"))
+	if _, ok := m.MacroSpecs[macroName]; !ok {
+		m.Output.Write([]byte("unknown macro\n"))
 		return nil
 	}
 
-	macroSpec := m.macroSpecs[macroName]
+	macroSpec := m.MacroSpecs[macroName]
 	if len(chain.Commands[0].Arguments) < len(macroSpec.Arguments) || (!macroSpec.Varargs && len(chain.Commands[0].Arguments) != len(macroSpec.Arguments)) {
-		m.output.Write([]byte("invalid macro arguments\n"))
-		m.output.Write([]byte("usage: " + macroName + " " + strings.Join(macroSpec.Arguments, " ") + "\n"))
+		m.Output.Write([]byte("invalid macro arguments\n"))
+		m.Output.Write([]byte("usage: " + macroName + " " + strings.Join(macroSpec.Arguments, " ") + "\n"))
 		return nil
 	}
 
@@ -64,7 +64,7 @@ func (m *macroManager) ResolveMacro(line string) []string {
 	}
 }
 
-func (m *macroManager) resolveSimpleMacro(macroSpec config.Macro, pipe string, chain *Chain) []string {
+func (m *MacroManager) resolveSimpleMacro(macroSpec config.Macro, pipe string, chain *Chain) []string {
 	staticArgs := chain.Commands[0].Arguments[:len(macroSpec.Arguments)-1]
 	varArgs := chain.Commands[0].Arguments[len(macroSpec.Arguments)-1:]
 	lines := make([]string, 0, len(macroSpec.Commands)*len(varArgs))
@@ -91,7 +91,7 @@ func (m *macroManager) resolveSimpleMacro(macroSpec config.Macro, pipe string, c
 	return lines
 }
 
-func (m *macroManager) resolveScriptMacro(macroSpec config.Macro, pipe string, chain *Chain) []string {
+func (m *MacroManager) resolveScriptMacro(macroSpec config.Macro, pipe string, chain *Chain) []string {
 	staticArgs := chain.Commands[0].Arguments[:len(macroSpec.Arguments)-1]
 	varArgs := chain.Commands[0].Arguments[len(macroSpec.Arguments)-1:]
 	lines := make([]string, 0, len(macroSpec.Commands)*len(varArgs))
@@ -109,7 +109,7 @@ func (m *macroManager) resolveScriptMacro(macroSpec config.Macro, pipe string, c
 		tmplData[fmt.Sprintf("Arg%d", i+1)] = arg
 
 		if err := m.macroTemplates[macroName].Execute(buf, tmplData); err != nil {
-			m.output.Write([]byte(fmt.Sprintf("Error while execute macro script: %s\n", err.Error())))
+			m.Output.Write([]byte(fmt.Sprintf("Error while execute macro script: %s\n", err.Error())))
 			continue
 		}
 
@@ -124,21 +124,21 @@ func (m *macroManager) resolveScriptMacro(macroSpec config.Macro, pipe string, c
 	return lines
 }
 
-func (m *macroManager) PrintMacros() {
-	for macroName, macroSpec := range m.macroSpecs {
-		m.output.Write([]byte(fmt.Sprintf("%s - %s\n", macroName, macroSpec.Description)))
+func (m *MacroManager) PrintMacros() {
+	for macroName, macroSpec := range m.MacroSpecs {
+		m.Output.Write([]byte(fmt.Sprintf("%s - %s\n", macroName, macroSpec.Description)))
 	}
 }
 
-func (m *macroManager) ValidateAndInitMacros() error {
+func (m *MacroManager) ValidateAndInitMacros() error {
 	m.macroTemplates = map[string]*template.Template{}
 	m.macroFunctions = map[string]interface{}{
 		"exec": m.macroFuncExec,
 		"log":  m.macroFuncLog,
 	}
 
-	for macroName, macroSpec := range m.macroSpecs {
-		if !isMacro(macroName) || !isMacro(macroName+" ") {
+	for macroName, macroSpec := range m.MacroSpecs {
+		if !m.IsMacro(macroName) || !m.IsMacro(macroName+" ") {
 			//the given macroName is already in use of internal commands
 			return fmt.Errorf(`invalid macro name '%s': reserved`, macroName)
 		}
@@ -160,7 +160,7 @@ func (m *macroManager) ValidateAndInitMacros() error {
 	return nil
 }
 
-func (m *macroManager) macroFuncExec(line string) string {
+func (m *MacroManager) macroFuncExec(line string) string {
 	chain, err := interpretLine(line)
 	if err != nil {
 		panic(err)
@@ -185,18 +185,18 @@ func (m *macroManager) macroFuncExec(line string) string {
 	return buf.String()
 }
 
-func (m *macroManager) macroFuncLog(format string, args ...interface{}) string {
+func (m *MacroManager) macroFuncLog(format string, args ...interface{}) string {
 	output := fmt.Sprintf(format, args...)
 
 	if !strings.HasSuffix(output, "\n") {
 		output += "\n"
 	}
 
-	m.output.Write([]byte(output))
+	m.Output.Write([]byte(output))
 	return ""
 }
 
-func isMacro(line string) bool {
+func (m *MacroManager) IsMacro(line string) bool {
 	switch {
 	case line == commandExit:
 		fallthrough

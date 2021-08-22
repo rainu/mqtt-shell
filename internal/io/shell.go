@@ -15,25 +15,18 @@ var multilineRegex = regexp.MustCompile(`<<([a-zA-Z0-9]+)$`)
 
 type shell struct {
 	rlInstance   *readline.Instance
-	macroManager *macroManager
+	macroManager *MacroManager
 
 	targetOut io.Writer
 }
 
 func NewShell(prompt, historyFile string,
-	macros map[string]config.Macro,
+	macroManager *MacroManager,
 	unsubCompletionClb readline.DynamicCompleteFunc) (instance *shell, err error) {
 
 	instance = &shell{
-		macroManager: &macroManager{
-			macroSpecs: macros,
-		},
-		targetOut: os.Stdout,
-	}
-	instance.macroManager.output = instance
-
-	if err := instance.macroManager.ValidateAndInitMacros(); err != nil {
-		return nil, err
+		macroManager: macroManager,
+		targetOut:    os.Stdout,
 	}
 
 	qosItem := readline.PcItem("-q",
@@ -41,7 +34,7 @@ func NewShell(prompt, historyFile string,
 		readline.PcItem("1"),
 		readline.PcItem("2"),
 	)
-	completer := generateMacroCompleter(macros)
+	completer := generateMacroCompleter(macroManager.MacroSpecs)
 	completer = append(completer,
 		readline.PcItem(commandListColors),
 		readline.PcItem(commandExit),
@@ -135,7 +128,7 @@ func (s *shell) Start() chan string {
 			}
 
 			lines := []string{line}
-			if isMacro(line) {
+			if s.macroManager.IsMacro(line) {
 				lines = s.macroManager.ResolveMacro(line)
 			}
 

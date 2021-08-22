@@ -102,7 +102,7 @@ func handleFile(envDir, env string, cfg *Config) {
 	defer envFile.Close()
 
 	if err := yaml.NewDecoder(envFile).Decode(&cfg); err != nil {
-		log.Fatal("Unable to parse environment file: ", err)
+		log.Fatal(fmt.Sprintf("Unable to parse environment file (%s): ", envFile.Name()), err)
 	}
 }
 

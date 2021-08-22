@@ -32,9 +32,12 @@ func main() {
 		GetSubscriptions() []string
 	}
 	signals := make(chan os.Signal, 1)
+	macroManager := &internalIo.MacroManager{
+		MacroSpecs: cfg.Macros,
+	}
 
 	if interactive {
-		shell, err := internalIo.NewShell(cfg.Prompt, cfg.HistoryFile, cfg.Macros, func(s string) []string {
+		shell, err := internalIo.NewShell(cfg.Prompt, cfg.HistoryFile, macroManager, func(s string) []string {
 			return subInformer.GetSubscriptions()
 		})
 		if err != nil {
@@ -50,11 +53,22 @@ func main() {
 		//reacting to signals (interrupt)
 		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 	}
+	macroManager.Output = output
+
+	if err := macroManager.ValidateAndInitMacros(); err != nil {
+		log.Fatal(err)
+	}
 
 	//execute the start commands
 	go func() {
 		for _, command := range cfg.StartCommands {
-			inputChan <- command
+			if macroManager.IsMacro(command) {
+				for _, line := range macroManager.ResolveMacro(command) {
+					inputChan <- line
+				}
+			} else {
+				inputChan <- command
+			}
 		}
 
 		if cfg.NonInteractive {
