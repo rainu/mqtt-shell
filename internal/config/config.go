@@ -28,7 +28,7 @@ type Config struct {
 	ColorBlacklist []string         `yaml:"color-blacklist"`
 }
 
-func NewConfig() Config {
+func NewConfig(version, revision string) Config {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		home = "./"
@@ -39,8 +39,9 @@ func NewConfig() Config {
 	env := ""
 	envDir := path.Join(home, ".mqtt-shell")
 
-	var moreHelp bool
+	var moreHelp, showVersion bool
 	flag.BoolVar(&moreHelp, "hh", false, "Show detailed help text")
+	flag.BoolVar(&showVersion, "v", false, "Show the version")
 
 	flag.StringVar(&env, "e", "", "The environment which should be used")
 	flag.StringVar(&envDir, "ed", envDir, "The environment directory")
@@ -67,6 +68,11 @@ func NewConfig() Config {
 	if moreHelp {
 		fmt.Fprint(os.Stderr, helpText)
 		os.Exit(1)
+	}
+
+	if showVersion {
+		fmt.Printf("%s - %s\n", version, revision)
+		os.Exit(0)
 	}
 
 	cfg.StartCommands = startCommands

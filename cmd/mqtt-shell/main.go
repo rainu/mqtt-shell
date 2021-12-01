@@ -14,12 +14,15 @@ import (
 	"syscall"
 )
 
+var ApplicationVersion = "dev"
+var ApplicationCodeRev = "revision"
+
 var mqttReconnectListener interface {
 	OnMqttReconnect()
 }
 
 func main() {
-	cfg := config.NewConfig()
+	cfg := config.NewConfig(ApplicationVersion, ApplicationCodeRev)
 	applyColorBlacklist(cfg)
 
 	interactive := !cfg.NonInteractive

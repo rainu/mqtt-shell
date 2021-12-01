@@ -43,4 +43,4 @@ jobs:
           if [ "$GOOS" = "windows" ]; then
             BINARY=$BINARY.exe
           fi
-          go build -a -installsuffix cgo -o $BINARY -v ./cmd/mqtt-shell/
+          go build -a -installsuffix cgo -o $BINARY -v -ldflags "-X main.ApplicationVersion=$(git describe --tags --abbrev=0) -X main.ApplicationCodeRev=$(git rev-parse --short HEAD)" ./cmd/mqtt-shell/
