@@ -79,6 +79,8 @@ func (p *processor) handleCommand(chain Chain) error {
 	}
 
 	switch chain.Commands[0].Name {
+	case commandHelp:
+		return p.handleHelp(chain)
 	case commandListColors:
 		return p.handleColors(chain)
 	case commandPub:
@@ -92,6 +94,11 @@ func (p *processor) handleCommand(chain Chain) error {
 	default:
 		return errors.New("unknown command")
 	}
+}
+
+func (p *processor) handleHelp(chain Chain) error {
+	p.out.Write([]byte(helpText))
+	return nil
 }
 
 func (p *processor) handleColors(chain Chain) error {

@@ -200,6 +200,8 @@ func (m *MacroManager) IsMacro(line string) bool {
 	switch {
 	case line == commandExit:
 		fallthrough
+	case line == commandHelp:
+		fallthrough
 	case line == commandList:
 		fallthrough
 	case line == commandListColors:

@@ -39,6 +39,9 @@ func NewConfig() Config {
 	env := ""
 	envDir := path.Join(home, ".mqtt-shell")
 
+	var moreHelp bool
+	flag.BoolVar(&moreHelp, "hh", false, "Show detailed help text")
+
 	flag.StringVar(&env, "e", "", "The environment which should be used")
 	flag.StringVar(&envDir, "ed", envDir, "The environment directory")
 	flag.StringVar(&cfg.Broker, "b", "", "The broker URI. ex: tcp://127.0.0.1:1883")
@@ -60,6 +63,11 @@ func NewConfig() Config {
 	flag.Var(&macroFiles, "m", "The macro file(s) which should be loaded")
 	flag.Var(&colorBlacklist, "cb", "This color(s) will not be used")
 	flag.Parse()
+
+	if moreHelp {
+		fmt.Fprint(os.Stderr, helpText)
+		os.Exit(1)
+	}
 
 	cfg.StartCommands = startCommands
 	cfg.ColorBlacklist = colorBlacklist
