@@ -22,7 +22,7 @@ var mqttReconnectListener interface {
 }
 
 func main() {
-	cfg := config.NewConfig(ApplicationVersion, ApplicationCodeRev)
+	cfg := config.ReadConfig(ApplicationVersion, ApplicationCodeRev)
 	applyColorBlacklist(cfg)
 
 	interactive := !cfg.NonInteractive

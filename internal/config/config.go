@@ -28,16 +28,11 @@ type Config struct {
 	ColorBlacklist []string         `yaml:"color-blacklist"`
 }
 
-func NewConfig(version, revision string) Config {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		home = "./"
-	}
-
+func ReadConfig(version, revision string) Config {
 	cfg := Config{}
 
 	env := ""
-	envDir := path.Join(home, ".mqtt-shell")
+	envDir := getConfigDirectory()
 
 	var moreHelp, showVersion bool
 	flag.BoolVar(&moreHelp, "hh", false, "Show detailed help text")
@@ -54,11 +49,11 @@ func NewConfig(version, revision string) Config {
 	flag.StringVar(&cfg.ClientId, "c", "mqtt-shell", "The ClientID")
 	flag.BoolVar(&cfg.CleanSession, "cs", true, "Indicating that no messages saved by the broker for this client should be delivered")
 	flag.BoolVar(&cfg.NonInteractive, "ni", false, "Should this shell be non interactive. Only useful in combination with 'cmd' option")
-	flag.StringVar(&cfg.HistoryFile, "hf", path.Join(home, ".mqtt-shell", ".history"), "The history file path")
+	flag.StringVar(&cfg.HistoryFile, "hf", path.Join(envDir, ".history"), "The history file path")
 	flag.StringVar(&cfg.Prompt, "sp", `\033[36m»\033[0m `, "The prompt of the shell")
 
 	var startCommands, macroFiles, colorBlacklist varArgs
-	macroFiles.Set(path.Join(home, ".mqtt-shell", ".macros.yml"))
+	macroFiles.Set(path.Join(envDir, ".macros.yml"))
 
 	flag.Var(&startCommands, "cmd", "The command(s) which should be executed at the beginning")
 	flag.Var(&macroFiles, "m", "The macro file(s) which should be loaded")

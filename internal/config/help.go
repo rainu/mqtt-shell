@@ -4,11 +4,11 @@ import "strings"
 
 var helpText = `\u001b[7mSetting files\u001b[0m
   All options can be written in separate environment files (one per environment) or for global settings 
-  in the \u001b[1m.global.yml\u001b[0m file. These files must be stores inside the shel-config directory (\u001b[1m~/.mqtt-shell\u001b[0m).
+  in the \u001b[1m.global.yml\u001b[0m file. These files must be stored inside the shell-config directory (\u001b[1m__CONFIG_DIR__\u001b[0m).
 
 \u001b[7mEnvironment configurations\u001b[0m
   You can create yaml files where you can configure predefined configuration. This can be helpful for 
-  different mqtt environments. This files must be stored in the environment directory (by default \u001b[1m~/.mqtt-shell\u001b[0m).
+  different mqtt environments. This files must be stored in the environment directory (by default \u001b[1m__CONFIG_DIR__\u001b[0m).
 
   For example (\u001b[1mexample.yml\u001b[0m):
   
@@ -23,7 +23,7 @@ var helpText = `\u001b[7mSetting files\u001b[0m
     commands: 
       - sub #
     non-interactive: false
-    history-file: /home/user/.mqtt-shell/history
+    history-file: __CONFIG_DIR__/history
     prompt: "\033[36mmsh>\033[0m "
     macros:
       my-macro:
@@ -39,12 +39,12 @@ var helpText = `\u001b[7mSetting files\u001b[0m
 
 \u001b[7mMacros\u001b[0m
   Macros can be a list of commands which should be executed. Or it can be a more complex but more powerful script. 
-  Macros can have their own arguments. They can be defined in the environment file (\u001b[1m~/.mqtt-shell/my-env.yml\u001b[0m), the 
-  global settings (\u001b[1m~/.mqtt-shell/.global.yml\u001b[0m) or the global macro file (\u001b[1m~/.mqtt-shell/.macros.yml\u001b[0m)
+  Macros can have their own arguments. They can be defined in the environment file (\u001b[1m__CONFIG_DIR__/my-env.yml\u001b[0m), the 
+  global settings (\u001b[1m__CONFIG_DIR__/.global.yml\u001b[0m) or the global macro file (\u001b[1m__CONFIG_DIR__/.macros.yml\u001b[0m)
 
 \u001b[7mMacros - list of commands\u001b[0m
 
-  # ~/.mqtt-shell/.macros.yml
+  # __CONFIG_DIR__/.macros.yml
   my-macro:
     description: Awesome description of my macro
     arguments:
@@ -77,7 +77,7 @@ var helpText = `\u001b[7mSetting files\u001b[0m
   | log  | <format string> [<argument>, ...] | Write the given content to the shell stdout. | log "Argument#1: %s" .Arg1|
   +---------------------------------------------------------------------------------------------------------------------+
 
-  # ~/.mqtt-shell/.macros.yml
+  # __CONFIG_DIR__/.macros.yml
   my-macro:
     description: Awesome description of my macro
     arguments:
@@ -99,4 +99,5 @@ For more information see https://github.com/rainu/mqtt-shell
 
 func init() {
 	helpText = strings.Replace(helpText, `\u001b`, "\u001b", -1)
+	helpText = strings.Replace(helpText, `__CONFIG_DIR__`, getConfigDirectory(), -1)
 }
