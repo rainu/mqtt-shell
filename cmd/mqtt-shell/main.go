@@ -22,7 +22,11 @@ var mqttReconnectListener interface {
 }
 
 func main() {
-	cfg := config.ReadConfig(ApplicationVersion, ApplicationCodeRev)
+	cfg, rc := config.ReadConfig(ApplicationVersion, ApplicationCodeRev)
+	if cfg == nil {
+		os.Exit(rc)
+	}
+
 	applyColorBlacklist(cfg)
 
 	interactive := !cfg.NonInteractive
@@ -92,13 +96,13 @@ func main() {
 	}
 }
 
-func applyColorBlacklist(cfg config.Config) {
+func applyColorBlacklist(cfg *config.Config) {
 	for _, colorCode := range cfg.ColorBlacklist {
 		internalIo.RemoveDecoratorFromPool(colorCode)
 	}
 }
 
-func establishMqtt(cfg config.Config) MQTT.Client {
+func establishMqtt(cfg *config.Config) MQTT.Client {
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker(cfg.Broker)
 	opts.SetClientID(cfg.ClientId)

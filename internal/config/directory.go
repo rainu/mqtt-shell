@@ -6,8 +6,10 @@ import (
 	"path"
 )
 
-func getConfigDirectory() string {
-	home, err := os.UserHomeDir()
+var osUserHomeDir = os.UserHomeDir
+
+var getConfigDirectory = func() string {
+	home, err := osUserHomeDir()
 	if err != nil {
 		home = "./"
 	}

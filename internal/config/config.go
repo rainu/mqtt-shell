@@ -10,25 +10,7 @@ import (
 	"strconv"
 )
 
-type Config struct {
-	Broker       string `yaml:"broker"`
-	CaFile       string `yaml:"ca"`
-	SubscribeQOS int    `yaml:"subscribe-qos"`
-	PublishQOS   int    `yaml:"publish-qos"`
-	Username     string `yaml:"username"`
-	Password     string `yaml:"password"`
-	ClientId     string `yaml:"client-id"`
-	CleanSession bool   `yaml:"clean-session"`
-
-	StartCommands  []string         `yaml:"commands"`
-	NonInteractive bool             `yaml:"non-interactive"`
-	HistoryFile    string           `yaml:"history-file"`
-	Prompt         string           `yaml:"prompt"`
-	Macros         map[string]Macro `yaml:"macros"`
-	ColorBlacklist []string         `yaml:"color-blacklist"`
-}
-
-func ReadConfig(version, revision string) Config {
+func ReadConfig(version, revision string) (*Config, int) {
 	cfg := Config{}
 
 	env := ""
@@ -62,16 +44,13 @@ func ReadConfig(version, revision string) Config {
 
 	if moreHelp {
 		fmt.Fprint(os.Stderr, helpText)
-		os.Exit(1)
+		return nil, 1
 	}
 
 	if showVersion {
 		fmt.Printf("%s - %s\n", version, revision)
-		os.Exit(0)
+		return nil, 0
 	}
-
-	cfg.StartCommands = startCommands
-	cfg.ColorBlacklist = colorBlacklist
 
 	if _, err := os.Stat(path.Join(envDir, ".global.yml")); err == nil {
 		handleFile(envDir, ".global", &cfg)
@@ -84,12 +63,24 @@ func ReadConfig(version, revision string) Config {
 		handleFile(envDir, env, &cfg)
 	}
 
+	// overwrite potential config values with argument values
+	startCommands.Reset()
+	colorBlacklist.Reset()
+	flag.Parse()
+	if len(startCommands) > 0 {
+		cfg.StartCommands = startCommands
+	}
+	if len(colorBlacklist) > 0 {
+		cfg.ColorBlacklist = colorBlacklist
+	}
+
 	if cfg.Broker == "" {
-		log.Fatal("Broker is missing!")
+		fmt.Fprint(os.Stderr, "Broker is missing!")
+		return nil, 1
 	}
 	loadMacroFiles(&cfg, macroFiles)
 
-	return cfg
+	return &cfg, -1
 }
 
 func handleFile(envDir, env string, cfg *Config) {
