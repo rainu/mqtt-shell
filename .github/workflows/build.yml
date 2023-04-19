@@ -33,6 +33,18 @@ jobs:
               curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
               dep ensure
           fi
+
+      - name: Test
+        run: go test -cover -coverprofile=coverage.txt -covermode=atomic ./...
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v1.0.2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.txt
+          flags: unittests
+          name: codecov-umbrella
+
       - name: Build
         env:
           CGO_ENABLED: 0
