@@ -9,7 +9,7 @@ require (
 	github.com/gookit/color v1.4.2
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
-	github.com/rainu/go-command-chain v0.1.0
+	github.com/rainu/go-command-chain v0.4.0
 	github.com/rainu/readline v1.4.1
 	github.com/stretchr/testify v1.7.0
 	gopkg.in/yaml.v2 v2.4.0
