@@ -1,5 +1,6 @@
 [![Go](https://github.com/rainu/mqtt-shell/actions/workflows/build.yml/badge.svg)](https://github.com/rainu/mqtt-shell/actions/workflows/build.yml)
-
+[![codecov](https://codecov.io/gh/rainu/mqtt-shell/branch/main/graph/badge.svg)](https://codecov.io/gh/rainu/mqtt-shell)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rainu/mqtt-shell)](https://goreportcard.com/report/github.com/rainu/mqtt-shell)
 # mqtt-shell
 
 A shell like command line interface for mqtt written in go. With it, you can easily subscribe and publish mqtt topics. 
