@@ -163,6 +163,17 @@ color-blacklist:
 	`), "\t", "  ")), 0755)
 	assert.Nil(t, err)
 
+	err = os.WriteFile(path.Join(cfgDir, ".macros.yml"), []byte(strings.ReplaceAll(strings.TrimSpace(`
+example:
+	description: some example
+	arguments:
+		- argN
+	commands:
+		- help
+	script: its a example script
+	`), "\t", "  ")), 0755)
+	assert.Nil(t, err)
+
 	os.Args = []string{"mqtt-shell"}
 	result, rc := ReadConfig("<version>", "<revision>")
 
@@ -187,6 +198,13 @@ color-blacklist:
 				Varargs:     true,
 				Commands:    []string{"help"},
 				Script:      "its a script",
+			},
+			"example": {
+				Description: "some example",
+				Arguments:   []string{"argN"},
+				Varargs:     false,
+				Commands:    []string{"help"},
+				Script:      "its a example script",
 			},
 		},
 		ColorBlacklist: []string{"00,11,22"},

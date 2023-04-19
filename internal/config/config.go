@@ -115,25 +115,29 @@ func loadMacroFiles(cfg *Config, macroFiles varArgs) {
 	}
 
 	for _, filePath := range macroFiles {
-		file, err := os.Open(filePath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				//skip this file
-				continue
-			}
+		loadMacroFile(cfg, filePath)
+	}
+}
 
-			log.Fatal("Can not open macro file: ", err)
-		}
-		defer file.Close()
-
-		macros := map[string]Macro{}
-		if err := yaml.NewDecoder(file).Decode(&macros); err != nil {
-			log.Fatal(fmt.Sprintf("Unable to parse macro file '%s': ", filePath), err)
+func loadMacroFile(cfg *Config, filePath string) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			//skip this file
+			return
 		}
 
-		//merge macros
-		for macroName, macroSpec := range macros {
-			cfg.Macros[macroName] = macroSpec
-		}
+		log.Fatal("Can not open macro file: ", err)
+	}
+	defer file.Close()
+
+	macros := map[string]Macro{}
+	if err := yaml.NewDecoder(file).Decode(&macros); err != nil {
+		log.Fatal(fmt.Sprintf("Unable to parse macro file '%s': ", filePath), err)
+	}
+
+	//merge macros
+	for macroName, macroSpec := range macros {
+		cfg.Macros[macroName] = macroSpec
 	}
 }

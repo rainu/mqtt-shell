@@ -8,6 +8,10 @@ import (
 )
 
 func Test_getConfigDirectory(t *testing.T) {
+	osUserHomeDir = func() (string, error) {
+		return os.TempDir(), nil
+	}
+
 	home, err := os.UserHomeDir()
 	assert.NoError(t, err)
 

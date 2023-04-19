@@ -1,6 +1,7 @@
 package io
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -72,4 +73,51 @@ func TestInterpretLine(t *testing.T) {
 			assert.Equal(t, test.expected, result)
 		})
 	}
+}
+
+func TestChain_ToCommand(t *testing.T) {
+	toTest, err := interpretLine(`sub test | echo test |& grep t | wc -l`)
+	assert.NoError(t, err)
+
+	testInput := &bytes.Buffer{}
+	testOutput := &bytes.Buffer{}
+
+	cmd, fn, err := toTest.ToCommand(testInput, testOutput)
+	defer fn()
+
+	assert.NoError(t, err)
+
+	assert.Equal(t,
+		`[IS] *bytes.Buffer ╮
+[OS]               │                                                               ╭ *bytes.Buffer
+[SO]               │                      ╭╮                   ╭╮                  │
+[CM]               ╰ /usr/bin/echo "test" ╡╞ /usr/bin/grep "t" ╡╰ /usr/bin/wc "-l" ╡
+[SE]                                      ╰╯                   ╽                   ╽`, cmd.String())
+}
+
+func TestChain_ToCommand_Appending(t *testing.T) {
+	toTest, err := interpretLine(`sub test | echo test |& grep t | wc -l > /tmp/test`)
+	assert.NoError(t, err)
+
+	testInput := &bytes.Buffer{}
+	testOutput := &bytes.Buffer{}
+
+	cmd, fn, err := toTest.ToCommand(testInput, testOutput)
+	defer fn()
+
+	assert.NoError(t, err)
+
+	assert.Equal(t,
+		`[IS] *bytes.Buffer ╮
+[OS]               │                                                               ╭ *bytes.Buffer, *os.File
+[SO]               │                      ╭╮                   ╭╮                  │
+[CM]               ╰ /usr/bin/echo "test" ╡╞ /usr/bin/grep "t" ╡╰ /usr/bin/wc "-l" ╡
+[SE]                                      ╰╯                   ╽                   ╽`, cmd.String())
+}
+
+func TestChain_IsLongTerm(t *testing.T) {
+	toTest, err := interpretLine(`sub test | echo test |& grep t | wc -l &`)
+	assert.NoError(t, err)
+
+	assert.True(t, toTest.IsLongTerm())
 }

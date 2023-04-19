@@ -6,7 +6,6 @@ import (
 	cmdchain "github.com/rainu/go-command-chain"
 	"io"
 	"os"
-	"os/exec"
 	"regexp"
 	"strings"
 )
@@ -115,15 +114,12 @@ func (c *Chain) ToCommand(input io.Reader, outputs ...io.Writer) (cmdchain.Final
 	b := cmdchain.Builder().WithInput(input)
 	to := len(c.Commands)
 	if appending {
-		//the last "command" is not a command but a output file target
+		//the last "command" is not a command but an output file target
 		to--
 	}
 
 	for i := 1; i < to; i++ {
-		realCmd := exec.Command(c.Commands[i].Name, c.Commands[i].Arguments...)
-		realCmd.Env = os.Environ() //pass our env through the new application
-
-		cmd := b.JoinCmd(realCmd)
+		cmd := b.Join(c.Commands[i].Name, c.Commands[i].Arguments...)
 
 		//is not last command, check the link to the next command
 		if i+1 < len(c.Commands) {
