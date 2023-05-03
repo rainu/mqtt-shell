@@ -4,15 +4,15 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/rainu/mqtt-shell.svg)](https://pkg.go.dev/github.com/rainu/mqtt-shell)
 # mqtt-shell
 
-A shell like command line interface for mqtt written in go. With it, you can easily subscribe and publish mqtt topics. 
+A shell like command line interface for MQTT written in go. With it, you can easily subscribe and publish MQTT topics. 
 It is also possible to pass through the incoming messages to external applications. Such like piping in shells!
 
 ![](./doc/example.gif)
 
 Features:
 * Colored output
-* Subscribe (multiple) mqtt topics
-* Publish messages to mqtt topic
+* Subscribe (multiple) MQTT topics
+* Publish messages to MQTT topic
 * Pipe the incoming messages to external applications
 * Command history (such like other shells)
 * Configuration support via yaml-files
@@ -27,7 +27,7 @@ go build -a -installsuffix cgo ./cmd/mqtt-shell/
 
 Or you can download the release binaries: [here](https://github.com/rainu/mqtt-shell/releases/latest)
 
-Or for Arch-Linux you cann install the AUR-Package [mqtt-shell](https://aur.archlinux.org/packages/mqtt-shell/)
+Or for Arch-Linux you can install the AUR-Package [mqtt-shell](https://aur.archlinux.org/packages/mqtt-shell/)
 ```bash
 yay -S mqtt-shell
 ```
@@ -40,48 +40,51 @@ To see all command options, simple type
 
 Usage of ./mqtt-shell:
   -b string
-    	The broker URI. ex: tcp://127.0.0.1:1883
+        The broker URI. ex: tcp://127.0.0.1:1883
   -c string
-    	The ClientID (default "mqtt-shell")
+        The ClientID (default "mqtt-shell")
   -ca string
-    	MQTT ca file path (if tls is used)
+        MQTT ca file path (if tls is used)
   -cb value
-    	This color(s) will not be used
+        This color(s) will not be used
   -cmd value
-    	The command(s) which should be executed at the beginning
+        The command(s) which should be executed at the beginning
   -cs
-    	Indicating that no messages saved by the broker for this client should be delivered (default true)
+        Indicating that no messages saved by the broker for this client should be delivered (default true)
   -e string
-    	The environment which should be used
+        The environment which should be used
   -ed string
-    	The environment directory (default "~/.mqtt-shell")
+        The environment directory (default "~/.config/mqtt-shell")
   -hf string
-    	The history file path (default "~/.mqtt-shell/.history")
+        The history file path (default "~/.config/mqtt-shell/.history")
+  -hh
+        Show detailed help text
   -m value
-    	The macro file(s) which should be loaded (default ~/.mqtt-shell/macros.yml)
+        The macro file(s) which should be loaded (default [~/.config/mqtt-shell/.macros.yml])
   -ni
-    	Should this shell be non interactive. Only useful in combination with 'cmd' option
+        Should this shell be non interactive. Only useful in combination with 'cmd' option
   -p string
-    	The password
+        The password
   -pq int
-    	The default Quality of Service for publishing 0,1,2 (default 1)
+        The default Quality of Service for publishing 0,1,2 (default 1)
   -sp string
-    	The prompt of the shell (default "\\033[36m»\\033[0m ")
+        The prompt of the shell (default "\\033[36m»\\033[0m ")
   -sq int
-    	The default Quality of Service for subscription 0,1,2
+        The default Quality of Service for subscription 0,1,2
   -u string
-    	The username
+        The username
+  -v    Show the version
 ```
 
 ## Setting files
 
 All options can be written in separate environment files (one per environment) or for global settings in the `.global.yml` file.
-These files must be stores inside the shel-config directory (`~/.mqtt-shell`).
+These files must be stores inside the shell-config directory (`~/.config/mqtt-shell`).
 
 ## Environment configurations
 
-You can create yaml files where you can configure predefined configuration. This can be helpful for different mqtt environments.
-This files must be stored in the environment directory (by default ~/.mqtt-shell/).
+You can create yaml files where you can configure predefined configuration. This can be helpful for different MQTT environments.
+This files must be stored in the environment directory (by default ~/.config/mqtt-shell/).
 
 For example:
 ```yaml
@@ -98,7 +101,7 @@ clean-session: true
 commands: 
   - sub #
 non-interactive: false
-history-file: /home/user/.mqtt-shell/history
+history-file: ~/.config/mqtt-shell/history
 prompt: "\033[36mmsh>\033[0m "
 macros:
   my-macro:
@@ -173,12 +176,12 @@ sub test/topic > /tmp/last.msg
 # Macros
 
 Macros can be a list of commands which should be executed. Or it can be a more complex but more powerful script. 
-Macros can have their own arguments. They can be defined in the environment file (`~/.mqtt-shell/my-env.yml`), 
-the global settings (`~/.mqtt-shell/.global.yml`) or the global macro file (`~/.mqtt-shell/.macros.yml`)
+Macros can have their own arguments. They can be defined in the environment file (`~/.config/mqtt-shell/my-env.yml`), 
+the global settings (`~/.config/mqtt-shell/.global.yml`) or the global macro file (`~/.config/mqtt-shell/.macros.yml`)
 
 ## Macros - list of commands
 ```yaml
-# ~/.mqtt-shell/.macros.yml
+# ~/.config/mqtt-shell/.macros.yml
 
 my-macro:
   description: Awesome description of my macro
@@ -211,7 +214,7 @@ Furthermore there are two custom functions available:
 | log | &lt;format string&gt; [&lt;argument&gt;, ...] | Write the given content to the shell stdout. | log "Argument#1: %s" .Arg1 |
 
 ```yaml
-# ~/.mqtt-shell/.macros.yml
+# ~/.config/mqtt-shell/.macros.yml
 
 my-macro:
   description: Awesome description of my macro
