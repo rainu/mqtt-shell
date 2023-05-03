@@ -248,7 +248,7 @@ var genSubHandler = func(p *processor, topic string, chain Chain) (func(mqtt.Cli
 	if len(chain.Commands) == 1 {
 		//the decorator will be saved because of inline func
 		//so each message for the current sub have the same decorator
-		decorators := getNextDecorators()
+		decorators := getNextDecorator()
 
 		return func(_ mqtt.Client, message mqtt.Message) {
 			p.out.Write([]byte(decorate(message.Topic()+" |", decorators...) + " " + string(message.Payload()) + "\n"))
@@ -304,7 +304,7 @@ func (p *processor) longTermSub(topic string, chain Chain) (func(mqtt.Client, mq
 func (p *processor) shortTermSub(chain Chain) func(mqtt.Client, mqtt.Message) {
 	//the decorator will be saved because of inline func
 	//so each message for the current sub have the same decorator
-	decorators := getNextDecorators()
+	decorators := getNextDecorator()
 
 	return func(client mqtt.Client, message mqtt.Message) {
 		wg := sync.WaitGroup{}

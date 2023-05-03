@@ -56,7 +56,7 @@ func RemoveDecoratorFromPool(decorator string) {
 	}
 }
 
-var getNextDecorators = func() decorator {
+var getNextDecorator = func() decorator {
 	decoratorPoolLock.Lock()
 	defer decoratorPoolLock.Unlock()
 

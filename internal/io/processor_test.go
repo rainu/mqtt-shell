@@ -508,11 +508,11 @@ func TestGenSubHandler_simple(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	ognd := getNextDecorators
+	ognd := getNextDecorator
 	defer func() {
-		getNextDecorators = ognd
+		getNextDecorator = ognd
 	}()
-	getNextDecorators = func() decorator {
+	getNextDecorator = func() decorator {
 		return []string{"1"}
 	}
 
@@ -621,11 +621,11 @@ func TestGenSubHandler_shortTermSub(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	ognd := getNextDecorators
+	ognd := getNextDecorator
 	defer func() {
-		getNextDecorators = ognd
+		getNextDecorator = ognd
 	}()
-	getNextDecorators = func() decorator {
+	getNextDecorator = func() decorator {
 		return []string{"1"}
 	}
 
@@ -653,11 +653,11 @@ func TestGenSubHandler_shortTermSub_invalidCommand(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	ognd := getNextDecorators
+	ognd := getNextDecorator
 	defer func() {
-		getNextDecorators = ognd
+		getNextDecorator = ognd
 	}()
-	getNextDecorators = func() decorator {
+	getNextDecorator = func() decorator {
 		return []string{"1"}
 	}
 
