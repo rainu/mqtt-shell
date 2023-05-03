@@ -6,7 +6,6 @@ import (
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"io"
-	"os"
 	"sort"
 	"strconv"
 	"sync"
@@ -17,20 +16,25 @@ type subscription struct {
 	callback mqtt.MessageHandler
 }
 
+type commandHandle struct {
+	w         io.Closer
+	closeChan chan interface{}
+}
+
 type processor struct {
 	client mqtt.Client
 	out    io.Writer
 
-	longTermCommandInputs map[string]*os.File
-	subscribedTopics      map[string]subscription
+	longTermCommands map[string]commandHandle
+	subscribedTopics map[string]subscription
 }
 
 func NewProcessor(out io.Writer, client mqtt.Client) *processor {
 	return &processor{
-		client:                client,
-		out:                   out,
-		longTermCommandInputs: map[string]*os.File{},
-		subscribedTopics:      map[string]subscription{},
+		client:           client,
+		out:              out,
+		longTermCommands: map[string]commandHandle{},
+		subscribedTopics: map[string]subscription{},
 	}
 }
 
@@ -48,8 +52,8 @@ func (p *processor) Process(input chan string) {
 	}
 
 	//close all long term chain inputs (will cause the normally exiting of underlying commands)
-	for _, input := range p.longTermCommandInputs {
-		input.Close()
+	for _, input := range p.longTermCommands {
+		input.w.Close()
 	}
 }
 
@@ -174,11 +178,10 @@ func (p *processor) handleList(chain Chain) error {
 
 func (p *processor) handleUnsub(chain Chain) error {
 	for _, topic := range chain.Commands[0].Arguments {
-		if ltWriter, ok := p.longTermCommandInputs[topic]; ok {
+		if ltWriter, ok := p.longTermCommands[topic]; ok {
 			//close the command-input-stream (will end the underlying cmdchain)
-			ltWriter.Close()
+			ltWriter.w.Close()
 		}
-		p.client.Unsubscribe(topic)
 
 		if token := p.client.Unsubscribe(topic); !token.Wait() {
 			return token.Error()
@@ -227,7 +230,7 @@ func (p *processor) handleSub(chain Chain) (err error) {
 	}
 
 	for _, topic := range topics {
-		clb, err := p.genSubHandler(topic, chain)
+		clb, err := genSubHandler(p, topic, chain)
 		if err != nil {
 			return err
 		}
@@ -241,7 +244,7 @@ func (p *processor) handleSub(chain Chain) (err error) {
 	return nil
 }
 
-func (p *processor) genSubHandler(topic string, chain Chain) (func(mqtt.Client, mqtt.Message), error) {
+var genSubHandler = func(p *processor, topic string, chain Chain) (func(mqtt.Client, mqtt.Message), error) {
 	if len(chain.Commands) == 1 {
 		//the decorator will be saved because of inline func
 		//so each message for the current sub have the same decorator
@@ -264,16 +267,16 @@ func (p *processor) genSubHandler(topic string, chain Chain) (func(mqtt.Client, 
 func (p *processor) longTermSub(topic string, chain Chain) (func(mqtt.Client, mqtt.Message), error) {
 	//long term commands are commands which are running permanently in background
 	//each new message will be written in ONE input pipe to that command
-	r, w, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
+	r, w := io.Pipe()
 
-	if prevWriter, ok := p.longTermCommandInputs[topic]; ok {
+	if prevWriter, ok := p.longTermCommands[topic]; ok {
 		//close the previous command-input-stream
-		prevWriter.Close()
+		prevWriter.w.Close()
 	}
-	p.longTermCommandInputs[topic] = w
+	p.longTermCommands[topic] = commandHandle{
+		w:         w,
+		closeChan: make(chan interface{}),
+	}
 	cmd, clb, err := chain.ToCommand(r)
 	if err != nil {
 		return nil, err
@@ -281,10 +284,14 @@ func (p *processor) longTermSub(topic string, chain Chain) (func(mqtt.Client, mq
 
 	//start the chain in background
 	go func() {
+		defer r.Close()
 		defer clb()
+		defer close(p.longTermCommands[topic].closeChan)
 
 		//the command chain will be finished if the underlying pipe is closed
-		cmd.Run()
+		if err := cmd.Run(); err != nil {
+			p.out.Write([]byte(err.Error() + "\n"))
+		}
 	}()
 
 	return func(client mqtt.Client, message mqtt.Message) {
@@ -303,6 +310,10 @@ func (p *processor) shortTermSub(chain Chain) func(mqtt.Client, mqtt.Message) {
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 
+		writeError := func(err error) {
+			p.out.Write([]byte(decorate(message.Topic()+" |", decorators...) + " " + err.Error() + "\n"))
+		}
+
 		go func() {
 			defer wg.Done()
 
@@ -318,9 +329,13 @@ func (p *processor) shortTermSub(chain Chain) func(mqtt.Client, mqtt.Message) {
 			defer clb()
 
 			if err != nil {
-				p.out.Write([]byte(decorate(message.Topic()+" |", decorators...) + " " + err.Error() + "\n"))
+				writeError(err)
+				return
 			}
-			cmd.Run()
+
+			if err = cmd.Run(); err != nil {
+				writeError(err)
+			}
 		}()
 
 		wg.Wait()

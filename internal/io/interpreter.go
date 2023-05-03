@@ -159,7 +159,11 @@ func (c *Chain) ToCommand(input io.Reader, outputs ...io.Writer) (cmdchain.Final
 		outputs = append(outputs, outFile)
 	}
 
-	return b.Finalize().WithOutput(outputs...).WithError(errOutputs...), callbackFn, nil
+	return b.Finalize().
+			WithGlobalErrorChecker(cmdchain.IgnoreExitErrors()).
+			WithOutput(outputs...).
+			WithError(errOutputs...),
+		callbackFn, nil
 }
 
 func (c *Chain) IsAppending() bool {
