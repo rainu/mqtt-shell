@@ -18,6 +18,9 @@ type shell struct {
 	macroManager *MacroManager
 
 	targetOut io.Writer
+
+	// wrap function for monkey patching purposes (unit tests)
+	readline func() (string, error)
 }
 
 func NewShell(prompt, historyFile string,
@@ -37,6 +40,7 @@ func NewShell(prompt, historyFile string,
 	completer := generateMacroCompleter(macroManager.MacroSpecs)
 	completer = append(completer,
 		readline.PcItem(commandListColors),
+		readline.PcItem(commandMacro),
 		readline.PcItem(commandExit),
 		readline.PcItem(commandHelp),
 		readline.PcItem(commandList),
@@ -66,6 +70,9 @@ func NewShell(prompt, historyFile string,
 	if err != nil {
 		return nil, err
 	}
+
+	instance.readline = instance.rlInstance.Readline
+
 	return instance, nil
 }
 
@@ -93,12 +100,12 @@ func (s *shell) Start() chan string {
 		defer s.Close()
 
 		for {
-			line, err := s.rlInstance.Readline()
+			line, err := s.readline()
 			if err != nil {
 				if err == readline.ErrInterrupt {
 					continue
 				}
-				return
+				break
 			}
 
 			//remove non-printable characters to prevent possible strange bugs ;)
@@ -153,7 +160,7 @@ func (s *shell) readMultilines(line string) string {
 	defer s.rlInstance.HistoryEnable()
 
 	for {
-		newLine, err := s.rlInstance.Readline()
+		newLine, err := s.readline()
 		if err != nil {
 			return "" //if user cancel the read
 		}
@@ -180,7 +187,7 @@ func (s *shell) Write(b []byte) (n int, err error) {
 		}
 	}()
 
-	n, err = fmt.Fprintf(s.targetOut, "\r\033[2K%s", string(b))
+	_, err = fmt.Fprintf(s.targetOut, "\r\033[2K%s", string(b))
 	if err == nil {
 		//in happy case we have to make sure that the correct amount of read bytes
 		//are returned -> otherwise this will cause many io trouble
